@@ -23,6 +23,10 @@ conio.h
 -
 thread
 -
+mutex
+-
+random
+-
 main.h
 D:/CLionProjects/SBoxDereviankoCPP/main.h
 

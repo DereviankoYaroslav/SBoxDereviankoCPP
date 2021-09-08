@@ -8,24 +8,35 @@
 #include <thread>
 #include "main.h"
 
-CONST int aesSbox[] = {99, 124, 119, 123, 242, 107, 111, 197, 48, 1, 103, 43, 254, 215, 171, 118, 202, 130, 201, 125, 250,
-                       89, 71, 240, 173, 212, 162, 175, 156, 164, 114, 192, 183, 253, 147, 38, 54, 63, 247, 204, 52, 165,
+CONST int aesSbox[] = {99, 124, 119, 123, 242, 107, 111, 197, 48, 1, 103, 43, 254, 215, 171, 118, 202, 130, 201, 125,
+                       250,
+                       89, 71, 240, 173, 212, 162, 175, 156, 164, 114, 192, 183, 253, 147, 38, 54, 63, 247, 204, 52,
+                       165,
                        229, 241, 113, 216, 49, 21, 4, 199, 35, 195, 24, 150, 5, 154, 7, 18, 128, 226, 235, 39, 178, 117,
                        9, 131, 44, 26, 27, 110, 90, 160, 82, 59, 214, 179, 41, 227, 47, 132, 83, 209, 0, 237, 32, 252,
-                       177, 91, 106, 203, 190, 57, 74, 76, 88, 207, 208, 239, 170, 251, 67, 77, 51, 133, 69, 249, 2, 127,
+                       177, 91, 106, 203, 190, 57, 74, 76, 88, 207, 208, 239, 170, 251, 67, 77, 51, 133, 69, 249, 2,
+                       127,
                        80, 60, 159, 168, 81, 163, 64, 143, 146, 157, 56, 245, 188, 182, 218, 33, 16, 255, 243, 210, 205,
                        12, 19, 236, 95, 151, 68, 23, 196, 167, 126, 61, 100, 93, 25, 115, 96, 129, 79, 220, 34, 42, 144,
                        136, 70, 238, 184, 20, 222, 94, 11, 219, 224, 50, 58, 10, 73, 6, 36, 92, 194, 211, 172, 98, 145,
-                       149, 228, 121, 231, 200, 55, 109, 141, 213, 78, 169, 108, 86, 244, 234, 101, 122, 174, 8, 186, 120,
-                       37, 46, 28, 166, 180, 198, 232, 221, 116, 31, 75, 189, 139, 138, 112, 62, 181, 102, 72, 3, 246, 14,
-                       97, 53, 87, 185, 134, 193, 29, 158, 225, 248, 152, 17, 105, 217, 142, 148, 155, 30, 135, 233, 206,
+                       149, 228, 121, 231, 200, 55, 109, 141, 213, 78, 169, 108, 86, 244, 234, 101, 122, 174, 8, 186,
+                       120,
+                       37, 46, 28, 166, 180, 198, 232, 221, 116, 31, 75, 189, 139, 138, 112, 62, 181, 102, 72, 3, 246,
+                       14,
+                       97, 53, 87, 185, 134, 193, 29, 158, 225, 248, 152, 17, 105, 217, 142, 148, 155, 30, 135, 233,
+                       206,
                        85, 40, 223, 140, 161, 137, 13, 191, 230, 66, 104, 65, 153, 45, 15, 176, 84, 187, 22};
 
-int main(){
+int main() {
     int mode;
     int N;
     int maxIter;
+    int threadsCount;
 
+    FILE *readThreads;
+    readThreads = fopen("Threads count.txt", "r");
+    fscanf(readThreads, "%d", &threadsCount);
+    fclose(readThreads);
 
     FILE *readMode;
     readMode = fopen("Mode.txt", "r");
@@ -42,24 +53,33 @@ int main(){
     fscanf(readMaxIter, "%d", &maxIter);
     fclose(readMaxIter);
 
-    int *sboxes = (int *) calloc(N*256, sizeof(int));
+    int *sboxes = (int *) calloc(N * 256, sizeof(int));
 
     dereviankoData data = {
             256,
             8,
-            5,
-            5,
-            1,
+            N,
+            maxIter,
+            mode,
             sboxes
     };
+    dereviankoData datas[threadsCount];
+    for (int i = 0; i < threadsCount; i++){
+        datas[i] = data;
+    }
 
-    std::thread threads[4];
+    std::thread threads[threadsCount];
     auto start = std::chrono::system_clock::now();
-    for (int i = 0;i < 4;i++)
-        threads[i] = std::thread(particleSwarmOptimization, &data);
+    printf("\nPSO in progress...\n");
+    for (int i = 0; i < threadsCount; i++)
+        threads[i] = std::thread(particleSwarmOptimization, &datas[i]);
 
-    for (int i = 0;i < 4;i++)
+    for (int i = 0; i < threadsCount; i++)
         threads[i].join();
+
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> diff = end - start;
+    printf("Часу витрачено: %f (секунди) (%f (хвилини))\n", diff.count(), diff.count() / 60.0);
 
     FILE *file;
     fopen_s(&file, "PSO results.txt", "w");
@@ -67,23 +87,27 @@ int main(){
         printf("ERROR: Can't save sbox to file!\n");
         for (;;);
     }
-    fprintf(file,"\n\nPSO S-boxes\n\n");
-    for (int q = 1; q < N; ++q) {
-        for (int w = 0; w < data.size; ++w) {
-            fprintf(file,"%d, ", data.sboxes[q * data.size + w]);
+    fprintf(file, "\n\nPSO S-boxes\n\n");
+    for (int i = 0; i < threadsCount; i++) {
+        for (int q = 1; q < datas[i].N; ++q) {
+            for (int w = 0; w < datas[i].size; ++w) {
+                fprintf(file, "%d, ", datas[i].sboxes[q * datas[i].size + w]);
+            }
+            fprintf(file, "\n\n");
         }
-        fprintf(file,"\n\n");
-    }
-    fprintf(file, "\n");
+        fprintf(file, "\n");
 
-    printf("\n\nPSO S-boxes\n\n");
+        printf("\n\nPSO S-boxes\n\n");
 
-    for (int q = 1; q < N; ++q) {
-        for (int w = 0; w < data.size; ++w) {
-            printf("%d, ", data.sboxes[q * data.size + w]);
+        for (int q = 1; q < datas[i].N; ++q) {
+            for (int w = 0; w < datas[i].size; ++w) {
+                printf("%d, ", datas[i].sboxes[q * datas[i].size + w]);
+            }
+            printf("\n\n");
         }
-        printf("\n\n");
     }
+
+    system("PAUSE");
 
     //int *ar = particleSwarmOptimization(256,8,N,maxIter,mode);
 }
@@ -109,8 +133,8 @@ void FisherYates(int *arr, int n) {
 
 int *SBoxGeneratingDec(int n, int m, int counter) {
     int size = raiseToPower(2, n);
-    int *dec = (int *)calloc(size, sizeof(int));
-    srand((counter*counter) %size);
+    int *dec = (int *) calloc(size, sizeof(int));
+    srand((counter * counter) % size);
     for (int i = 0; i < size;) {
         dec[i] = rand() % size;
         int contains = 0;
@@ -129,7 +153,7 @@ int *SBoxGeneratingDec(int n, int m, int counter) {
         printf("%d, ", dec[i]);
     }
     printf("\n");*/
-    FisherYates(dec,size);
+    FisherYates(dec, size);
     return dec;
 }
 
@@ -142,7 +166,7 @@ int *valueToBinary(int i, int rank) {
 }
 
 int *binaryElementsApprox(int *arr, int size, int count) {
-    int *result = (int*) calloc(size * count, sizeof(int));
+    int *result = (int *) calloc(size * count, sizeof(int));
     for (int i = 0; i < size; ++i) {
         int *bin = valueToBinary(arr[i], count);
         for (int j = count - 1; j >= 0; j--) {
@@ -250,30 +274,30 @@ int myModulusDec(int number, int mod) {
     return number % mod;
 }
 
-void particleSwarmOptimization(void *ddata){
-    dereviankoData* dd = (dereviankoData*)ddata;
+void particleSwarmOptimization(void *ddata) {
+    dereviankoData *dd = (dereviankoData *) ddata;
 
     srand(time(NULL));
-    int flag = rand()%dd->size;
-    int population[2*dd->N][dd->size];
-    for (int i = 0; i < dd->size; ++i){
+    int flag = rand() % dd->size;
+    int population[2 * dd->N][dd->size];
+    for (int i = 0; i < dd->size; ++i) {
         population[0][i] = aesSbox[i];
     }
-    for (int q = 1; q < dd->N; ++q){
-        int *ar1 = SBoxGeneratingDec(dd->count,dd->count,q+flag);
-        for(int w = 0; w < dd->size; ++w) {
+    for (int q = 1; q < dd->N; ++q) {
+        int *ar1 = SBoxGeneratingDec(dd->count, dd->count, q + flag);
+        for (int w = 0; w < dd->size; ++w) {
             population[q][w] = ar1[w];
         }
         free(ar1);
     }
     int arrNL[dd->N];
-    for (int q = 0; q < dd->N; ++q){
-        for(int w = 0; w < dd->size; ++w){
-            printf("%d ",population[q][w]);
+    for (int q = 0; q < dd->N; ++q) {
+        for (int w = 0; w < dd->size; ++w) {
+            printf("%d ", population[q][w]);
         }
-        int LAT = LATMax(population[q],dd->size,dd->count);
+        int LAT = LATMax(population[q], dd->size, dd->count);
         int NL = raiseToPower(2, dd->count - 1) - LAT;
-        printf( "\nNon-linearity from LAT = %d \n", NL);
+        printf("\nNon-linearity from LAT = %d \n", NL);
         printf("\n");
         arrNL[q] = NL;
     }
@@ -293,35 +317,35 @@ void particleSwarmOptimization(void *ddata){
         }
     }
     printf("\n");
-    for (int q = 0; q < dd->N; ++q){
-        printf( "\n%d ", arrNL[q]);
+    for (int q = 0; q < dd->N; ++q) {
+        printf("\n%d ", arrNL[q]);
     }
     printf("\nSORTED BY Non-Linearity\n");
-    for (int q = 0; q < dd->N; ++q){
-        for(int w = 0; w < dd->size; ++w){
-            printf("%d, ",population[q][w]);
+    for (int q = 0; q < dd->N; ++q) {
+        for (int w = 0; w < dd->size; ++w) {
+            printf("%d, ", population[q][w]);
         }
         printf("\n\n");
     }
     int gBest[dd->size];
-    for (int m = 0; m < dd->size; ++m){
+    for (int m = 0; m < dd->size; ++m) {
         gBest[m] = population[0][m];
     }
     int pBest[dd->N][dd->size];
-    for (int i = 1; i < dd->N; ++i){
-        for (int j = 0; j < dd->size; ++j){
-            pBest[i-1][j] = population[i][j];
+    for (int i = 1; i < dd->N; ++i) {
+        for (int j = 0; j < dd->size; ++j) {
+            pBest[i - 1][j] = population[i][j];
         }
     }
     printf("\n\n");
     printf("\ngBest\n");
-    for (int m = 0; m < dd->size; ++m){
-        printf("%d, ",gBest[m]);
+    for (int m = 0; m < dd->size; ++m) {
+        printf("%d, ", gBest[m]);
     }
     printf("\npBest\n");
-    for (int q = 0; q < dd->N-1; ++q){
-        for(int w = 0; w < dd->size; ++w){
-            printf("%d, ",pBest[q][w]);
+    for (int q = 0; q < dd->N - 1; ++q) {
+        for (int w = 0; w < dd->size; ++w) {
+            printf("%d, ", pBest[q][w]);
         }
         printf("\n\n");
     }
@@ -331,8 +355,8 @@ void particleSwarmOptimization(void *ddata){
     int curIter = 0;
     int Vel[dd->N][dd->size];
     int arrNLSorted[dd->size];
-    while(dd->maxIter > 0) {
-        weightCur = weight1+(curIter-1)*((weight2-weight1)/dd->maxIter);
+    while (dd->maxIter > 0) {
+        weightCur = weight1 + (curIter - 1) * ((weight2 - weight1) / dd->maxIter);
         printf("\nWHILE\n");
         int Q = 100;
         int rd1 = rand() % (Q);
@@ -359,7 +383,7 @@ void particleSwarmOptimization(void *ddata){
         int tempSbox2[dd->size];
         for (int i = 0; i < dd->N; ++i) {
             for (int j = 0; j < dd->size;) {
-                if (dd->mode == 1){
+                if (dd->mode == 1) {
                     Vel[i][j] = ceil(weightCur * Vel[i][j] + c1 * r1 * (gBest[j] - population[i][j] +
                                                                         c2 * r2 * (gBest[j] - population[i][j])));
                 }
@@ -458,27 +482,27 @@ void particleSwarmOptimization(void *ddata){
             }
             printf("\n\n");
         }
-        for (int m = 0; m < dd->size; ++m){
+        for (int m = 0; m < dd->size; ++m) {
             gBest[m] = population[0][m];
         }
-        for (int i = 1; i < dd->N; ++i){
-            for (int j = 0; j < dd->size; ++j){
-                pBest[i-1][j] = population[i][j];
+        for (int i = 1; i < dd->N; ++i) {
+            for (int j = 0; j < dd->size; ++j) {
+                pBest[i - 1][j] = population[i][j];
             }
         }
         printf("\n\n");
         printf("\ngBest\n");
-        for (int m = 0; m < dd->size; ++m){
-            printf("%d, ",gBest[m]);
+        for (int m = 0; m < dd->size; ++m) {
+            printf("%d, ", gBest[m]);
         }
         printf("\npBest\n");
-        for (int q = 0; q < dd->N-1; ++q){
-            for(int w = 0; w < dd->size; ++w){
-                printf("%d, ",pBest[q][w]);
+        for (int q = 0; q < dd->N - 1; ++q) {
+            for (int w = 0; w < dd->size; ++w) {
+                printf("%d, ", pBest[q][w]);
             }
             printf("\n\n");
         }
-        dd->maxIter = dd->maxIter-1;
+        dd->maxIter = dd->maxIter - 1;
         dd->mode = 0;
     }
     //printf("\n\nFinal data\n\n");
