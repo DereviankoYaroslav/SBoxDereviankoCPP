@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+D:/CLionProjects/SBoxDereviankoCPP/main.cpp
+stdio.h
+-
+stdlib.h
+-
+windows.h
+-
+time.h
+-
+pthread.h
+-
+math.h
+-
+conio.h
+-
+thread
+-
+main.h
+D:/CLionProjects/SBoxDereviankoCPP/main.h
+
+D:/CLionProjects/SBoxDereviankoCPP/main.h
+stdlib.h
+-
+stdint.h
+-
+
